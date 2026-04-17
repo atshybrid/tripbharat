@@ -34,12 +34,12 @@ scp -i $SSH_KEY -o StrictHostKeyChecking=no \
 
 echo "== Running remote setup..."
 ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER bash << 'EOF'
-set -e
 
 # Install Nginx if missing
 which nginx || (apt-get install -y nginx && systemctl enable nginx)
 
 # Backend
+echo "-- Backend: installing & restarting..."
 cd /var/www/sktours-api
 npm install --production
 npm run seed:admin 2>/dev/null || true
@@ -48,14 +48,20 @@ pm2 describe sktours-api > /dev/null 2>&1 \
   || pm2 start server.js --name sktours-api
 pm2 save
 
-# Frontend
+# Frontend — clear .next to avoid stale build artifacts, then build
+echo "-- Frontend: building..."
 cd /var/www/sktours-frontend
 npm install
-npm run build
-pm2 describe sktours-frontend > /dev/null 2>&1 \
-  && pm2 restart sktours-frontend \
-  || pm2 start npm --name sktours-frontend -- start
-pm2 save
+rm -rf .next
+if npm run build; then
+  pm2 describe sktours-frontend > /dev/null 2>&1 \
+    && pm2 restart sktours-frontend \
+    || pm2 start npm --name sktours-frontend -- start
+  pm2 save
+  echo "✓ Frontend build succeeded"
+else
+  echo "⚠ Frontend build failed — keeping previous running version"
+fi
 
 # Nginx config
 cp /root/nginx.conf /etc/nginx/sites-available/sktours
