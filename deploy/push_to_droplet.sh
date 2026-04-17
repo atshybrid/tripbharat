@@ -53,7 +53,7 @@ echo "-- Frontend: building..."
 cd /var/www/sktours-frontend
 npm install
 rm -rf .next
-if npm run build; then
+if NODE_OPTIONS="--max-old-space-size=1536" npm run build; then
   pm2 describe sktours-frontend > /dev/null 2>&1 \
     && pm2 restart sktours-frontend \
     || pm2 start npm --name sktours-frontend -- start
