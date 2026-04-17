@@ -34,6 +34,10 @@ const options = {
         description: 'Local development'
       }
     ],
+    externalDocs: {
+      description: 'API Documentation',
+      url: 'http://api.tripbharatgo.com/api/docs'
+    },
     components: {
       securitySchemes: {
         bearerAuth: {

@@ -71,7 +71,7 @@ app.get('/', (req, res) => {
     success: true,
     message: 'Welcome to SK ToursiQ API',
     version: '1.0.0',
-    documentation: `${req.protocol}://${req.get('host')}/api-docs`
+    documentation: `${req.protocol}://${req.get('host')}/api/docs`
   });
 });
 
@@ -107,13 +107,19 @@ app.use('/api/trip-finder', tripFinderRoutes);
 app.use('/api/push', pushRoutes);
 
 // Swagger API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+const swaggerUiOptions = {
   explorer: true,
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'SK ToursiQ API Docs'
-}));
+};
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // Swagger JSON endpoint
+app.get('/api/docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 app.get('/api-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
