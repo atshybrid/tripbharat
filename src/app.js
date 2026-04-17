@@ -26,6 +26,8 @@ const corsOptions = {
     'https://www.tripbharatgo.com',
     'http://tripbharatgo.com',
     'http://www.tripbharatgo.com',
+    'https://api.tripbharatgo.com',
+    'http://api.tripbharatgo.com',
     'http://localhost:3000',
     'http://localhost:3001'
   ],
@@ -110,7 +112,17 @@ app.use('/api/push', pushRoutes);
 const swaggerUiOptions = {
   explorer: true,
   customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'SK ToursiQ API Docs'
+  customSiteTitle: 'SK ToursiQ API Docs',
+  swaggerOptions: {
+    persistAuthorization: true,
+    requestInterceptor: (req) => {
+      // Auto-upgrade http → https when page loaded over HTTPS (avoids mixed-content block)
+      if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+        req.url = req.url.replace(/^http:\/\//, 'https://');
+      }
+      return req;
+    }
+  }
 };
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
