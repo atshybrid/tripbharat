@@ -13,6 +13,7 @@ const initModels = () => {
   models.GetTogether = require('./GetTogether')(sequelize);
   models.Referral = require('./Referral')(sequelize);
   models.Review = require('./Review')(sequelize);
+  models.PushSubscription = require('./PushSubscription')(sequelize);
 
   // Define associations
   
@@ -21,6 +22,7 @@ const initModels = () => {
   models.User.hasMany(models.WalletTransaction, { foreignKey: 'userId', as: 'transactions' });
   models.User.hasMany(models.GetTogether, { foreignKey: 'creatorId', as: 'createdTrips' });
   models.User.hasMany(models.Review, { foreignKey: 'userId', as: 'reviews' });
+  models.User.hasMany(models.PushSubscription, { foreignKey: 'userId', as: 'pushSubscriptions' });
   
   // TourPackage associations
   models.TourPackage.hasMany(models.Booking, { foreignKey: 'packageId', as: 'bookings' });

@@ -12,12 +12,23 @@ const logger = require('./utils/logger');
 // Create Express app
 const app = express();
 
+// Trust proxy (Nginx reverse proxy)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://tripbharatgo.com',
+    'https://www.tripbharatgo.com',
+    'http://tripbharatgo.com',
+    'http://www.tripbharatgo.com',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ],
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -73,6 +84,11 @@ const getTogetherRoutes = require('./routes/getTogether');
 const referralRoutes = require('./routes/referrals');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
+const busRoutes = require('./routes/bus');
+const hotelRoutes = require('./routes/hotels');
+const aiRoutes = require('./routes/ai');
+const tripFinderRoutes = require('./routes/tripFinder');
+const pushRoutes = require('./routes/push');
 
 // Mount routes
 app.use('/api/auth', authRoutes);
@@ -82,7 +98,13 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/get-together', getTogetherRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/payment', paymentRoutes); // alias used by frontend
 app.use('/api/admin', adminRoutes);
+app.use('/api/bus', busRoutes);
+app.use('/api/hotels', hotelRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/trip-finder', tripFinderRoutes);
+app.use('/api/push', pushRoutes);
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

@@ -10,6 +10,7 @@ router.use(protect);
 router.use(isAdmin);
 
 router.get('/dashboard', adminController.getDashboardStats);
+router.get('/stats', adminController.getDashboardStats); // alias
 router.get('/users', paginationValidation, validate, adminController.getAllUsers);
 router.get('/bookings', paginationValidation, validate, adminController.getAllBookings);
 router.put('/bookings/:id/status', validateMongoId, validate, adminController.updateBookingStatus);

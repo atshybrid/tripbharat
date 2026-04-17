@@ -37,6 +37,10 @@ if (dbType === 'postgresql') {
     get Review() {
       const { getModels } = require('./postgres');
       return getModels().Review;
+    },
+    get PushSubscription() {
+      const { getModels } = require('./postgres');
+      return getModels().PushSubscription;
     }
   };
 } else {

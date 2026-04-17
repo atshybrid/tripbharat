@@ -44,13 +44,11 @@ async function seedPostgres() {
     process.exit(0);
   }
 
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, salt);
-
+  // Note: do NOT pre-hash — the beforeCreate hook in User model handles hashing
   const admin = await User.create({
     name:         ADMIN_NAME,
     email:        ADMIN_EMAIL,
-    password:     hashedPassword,
+    password:     ADMIN_PASSWORD,
     phone:        ADMIN_PHONE,
     role:         'admin',
     referralCode: crypto.randomBytes(5).toString('hex').toUpperCase(),

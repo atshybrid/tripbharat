@@ -27,10 +27,19 @@ module.exports = (sequelize) => {
     },
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
       validate: {
         len: [6, 100]
       }
+    },
+    googleId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true
+    },
+    authProvider: {
+      type: DataTypes.ENUM('local', 'google'),
+      defaultValue: 'local'
     },
     phone: {
       type: DataTypes.STRING,
@@ -87,8 +96,8 @@ module.exports = (sequelize) => {
     timestamps: true,
     hooks: {
       beforeCreate: async (user) => {
-        // Hash password
-        if (user.password) {
+        // Hash password (only for local auth)
+        if (user.password && user.authProvider === 'local') {
           const salt = await bcrypt.genSalt(10);
           user.password = await bcrypt.hash(user.password, salt);
         }

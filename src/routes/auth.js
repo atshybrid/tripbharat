@@ -41,6 +41,13 @@ router.post(
   authController.resetPassword
 );
 
+// Google OAuth login / register
+router.post(
+  '/google',
+  authLimiter,
+  authController.googleLogin
+);
+
 // Protected routes
 router.get(
   '/me',

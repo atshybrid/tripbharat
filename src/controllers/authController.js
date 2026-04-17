@@ -3,6 +3,15 @@ const AppError = require('../utils/appError');
 const { sendWelcomeEmail } = require('../utils/emailService');
 const { uploadImage } = require('../utils/imageUpload');
 const logger = require('../utils/logger');
+const { OAuth2Client } = require('google-auth-library');
+
+// Accept both Web and Android client IDs
+const GOOGLE_CLIENT_IDS = (process.env.GOOGLE_WEB_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '')
+  .split(',')
+  .map(id => id.trim())
+  .filter(Boolean);
+
+const googleClient = new OAuth2Client();
 
 // @desc    Register user
 // @route   POST /api/auth/signup
@@ -129,8 +138,12 @@ exports.login = async (req, res, next) => {
     const isPasswordValid = await user.comparePassword(password);
 
     if (!isPasswordValid) {
-      // Increment login attempts
-      await user.incLoginAttempts();
+      // Increment login attempts (method name differs between MongoDB and PostgreSQL models)
+      if (user.incrementLoginAttempts) {
+        await user.incrementLoginAttempts();
+      } else if (user.incLoginAttempts) {
+        await user.incLoginAttempts();
+      }
       return next(new AppError('Invalid email or password', 401));
     }
 
@@ -342,6 +355,133 @@ exports.resetPassword = async (req, res, next) => {
     });
 
   } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Login / Register with Google OAuth
+// @route   POST /api/auth/google
+// @access  Public
+exports.googleLogin = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return next(new AppError('Google ID token is required', 400));
+    }
+
+    if (GOOGLE_CLIENT_IDS.length === 0) {
+      return next(new AppError('Google OAuth is not configured on this server', 503));
+    }
+
+    // Verify the Google ID token against all configured client IDs
+    let payload;
+    let lastError;
+    for (const clientId of GOOGLE_CLIENT_IDS) {
+      try {
+        const ticket = await googleClient.verifyIdToken({
+          idToken,
+          audience: clientId
+        });
+        payload = ticket.getPayload();
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!payload) {
+      logger.warn(`Google token verification failed: ${lastError?.message}`);
+      return next(new AppError('Invalid Google token', 401));
+    }
+
+    const { sub: googleId, email, name, picture, email_verified } = payload;
+
+    if (!email_verified) {
+      return next(new AppError('Google account email is not verified', 400));
+    }
+
+    const dbType = process.env.DB_TYPE || 'mongodb';
+
+    // Find by googleId first, then by email
+    let user = dbType === 'postgresql'
+      ? await User.findOne({ where: { googleId } })
+      : await User.findOne({ googleId });
+
+    if (!user) {
+      // Try to find by email (link existing account)
+      user = dbType === 'postgresql'
+        ? await User.findOne({ where: { email } })
+        : await User.findOne({ email });
+
+      if (user) {
+        // Link Google to existing account
+        if (dbType === 'postgresql') {
+          await user.update({ googleId, authProvider: 'google', profileImage: user.profileImage || picture });
+        } else {
+          user.googleId = googleId;
+          user.authProvider = 'google';
+          if (!user.profileImage) user.profileImage = picture;
+          await user.save();
+        }
+      } else {
+        // Create new user via Google
+        const userData = {
+          name,
+          email,
+          googleId,
+          authProvider: 'google',
+          profileImage: picture,
+          isEmailVerified: true
+        };
+
+        if (dbType === 'postgresql') {
+          user = await User.create(userData);
+        } else {
+          user = await User.create(userData);
+        }
+
+        // Send welcome email (async)
+        sendWelcomeEmail(user).catch(err =>
+          logger.error(`Welcome email failed: ${err.message}`)
+        );
+      }
+    }
+
+    if (!user.isActive) {
+      return next(new AppError('Your account has been deactivated', 403));
+    }
+
+    // Update last login
+    if (dbType === 'postgresql') {
+      await user.update({ lastLogin: new Date() });
+    } else {
+      user.lastLogin = new Date();
+      await user.save();
+    }
+
+    const token = user.generateAuthToken();
+
+    res.status(200).json({
+      success: true,
+      message: 'Google login successful',
+      data: {
+        token,
+        user: {
+          id: user.id || user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          profileImage: user.profileImage,
+          walletBalance: user.walletBalance,
+          referralCode: user.referralCode,
+          authProvider: user.authProvider
+        }
+      }
+    });
+
+  } catch (error) {
+    logger.error(`Google login error: ${error.message}`);
     next(error);
   }
 };
