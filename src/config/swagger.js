@@ -18,12 +18,20 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5432/api/v1',
-        description: 'Development server'
+        url: 'http://168.144.93.18/api',
+        description: 'Production server (IP direct)'
       },
       {
-        url: 'https://api.sktours.com/api/v1',
-        description: 'Production server'
+        url: 'http://api.tripbharatgo.com/api',
+        description: 'Production server (domain)'
+      },
+      {
+        url: 'https://api.tripbharatgo.com/api',
+        description: 'Production server (HTTPS — after SSL)'
+      },
+      {
+        url: 'http://localhost:5000/api',
+        description: 'Local development'
       }
     ],
     components: {
